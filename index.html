@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PP Quiz</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --accent: #38bdf8;
+    --accent-dim: #0ea5e9;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --success: #34d399;
+    --success-bg: #064e3b;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-logo {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .session-info {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .session-count {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Main content area */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 24px 20px;
+    overflow: hidden;
+  }
+
+  /* Category badge */
+  .category-badge {
+    display: inline-flex;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    align-self: flex-start;
+  }
+
+  /* Question */
+  .question-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .question-text {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--text);
+  }
+
+  /* Answer area */
+  .answer-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .answer-block.revealed {
+    border-color: var(--success);
+  }
+
+  .answer-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .answer-text {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .answer-blur {
+    filter: blur(8px);
+    user-select: none;
+    pointer-events: none;
+    transition: filter 0.3s ease;
+  }
+
+  .answer-blur.revealed {
+    filter: blur(0);
+  }
+
+  .reveal-hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+    transition: opacity 0.3s;
+  }
+
+  .reveal-hint.hidden { opacity: 0; pointer-events: none; }
+
+  /* Footer controls */
+  .footer {
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    -webkit-appearance: none;
+  }
+
+  .btn:active { transform: scale(0.98); opacity: 0.85; }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0f172a;
+  }
+
+  .btn-secondary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-success {
+    background: var(--success-bg);
+    border: 1px solid var(--success);
+    color: var(--success);
+  }
+
+  /* Progress dots */
+  .progress-dots {
+    display: flex;
+    gap: 6px;
+    padding: 0 24px 12px;
+    flex-wrap: wrap;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--surface2);
+    transition: background 0.2s;
+  }
+
+  .dot.seen { background: var(--text-muted); }
+  .dot.current { background: var(--accent); width: 20px; border-radius: 4px; }
+
+  /* Start screen */
+  #start-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 32px;
+    gap: 16px;
+  }
+
+  .start-title {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.2;
+    background: linear-gradient(135deg, var(--accent) 0%, #818cf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .start-subtitle {
+    font-size: 16px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    max-width: 280px;
+  }
+
+  .start-stats {
+    display: flex;
+    gap: 24px;
+    margin: 8px 0;
+  }
+
+  .stat { text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  #start-screen .btn { max-width: 280px; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0) + 24px);
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--success-bg);
+    border: 1px solid var(--success);
+    color: var(--success);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+    z-index: 100;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Hidden utility */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Start / Home screen -->
+  <div id="start-screen">
+    <div class="start-title">Power Platform<br>Quiz</div>
+    <p class="start-subtitle">Random questions to sharpen your Power Platform knowledge.</p>
+    <div class="start-stats">
+      <div class="stat">
+        <div class="stat-num" id="q-count">0</div>
+        <div class="stat-label">Questions</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="session-total">0</div>
+        <div class="stat-label">Asked today</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="startQuiz()">Start Quiz</button>
+  </div>
+
+  <!-- Quiz screen -->
+  <div id="quiz-screen" class="hidden" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+    <div class="header">
+      <span class="header-logo">PP Quiz</span>
+      <span class="session-info">Session: <span class="session-count" id="session-counter">0</span></span>
+    </div>
+
+    <div class="progress-dots" id="progress-dots"></div>
+
+    <div class="content">
+      <span class="category-badge" id="q-category">General</span>
+
+      <div class="question-block">
+        <p class="question-text" id="question-text"></p>
+
+        <div class="answer-block" id="answer-block" onclick="revealAnswer()">
+          <div class="answer-label">Answer</div>
+          <p class="answer-text answer-blur" id="answer-text"></p>
+          <div class="reveal-hint" id="reveal-hint">Tap to reveal</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()">Next question</button>
+      <button class="btn btn-secondary" onclick="endSession()">End session</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── QUESTIONS ─────────────────────────────────────────────────────────────
+// Edit this array to add, remove, or change questions.
+// Each question needs: q (question), a (answer), cat (category)
+const QUESTIONS = [
+  // Power Apps
+  { cat: "Power Apps", q: "What is the difference between Canvas apps and Model-driven apps in Power Apps?", a: "Canvas apps are fully customisable, pixel-perfect apps where you design the UI and connect to any data source. Model-driven apps are built on top of Dataverse and automatically generate the UI based on your data model — less design flexibility but better for complex data relationships." },
+  { cat: "Power Apps", q: "What is a delegation warning in Power Apps, and when does it appear?", a: "A delegation warning appears when a formula or function cannot be processed by the data source and must be handled locally by Power Apps instead. This limits results to the first 500–2000 records. Functions like Search() and some filtering operations on certain connectors are not delegable." },
+  { cat: "Power Apps", q: "What are collections in Power Apps and how do they differ from variables?", a: "Collections are in-memory tables of data that can hold multiple rows and columns — like a temporary local dataset. Variables hold a single value. Collections are created with Collect() or ClearCollect() and are useful for storing lists or building up data before saving." },
+  { cat: "Power Apps", q: "What does the Patch() function do in Power Apps?", a: "Patch() creates or modifies records in a data source. It can update a single field without affecting others, create new records, or update multiple records at once. It is the primary way to write data back to SharePoint, Dataverse, or other connected sources." },
+  { cat: "Power Apps", q: "What is the purpose of the OnStart property in a Canvas app?", a: "OnStart runs once when the app first loads. It is used to initialise variables, load data into collections, set user context, or perform any setup that needs to happen before the user interacts with the app." },
+  { cat: "Power Apps", q: "What is a component in Power Apps and why would you use one?", a: "A component is a reusable UI element that can be used across multiple screens or apps — similar to a custom control. Components have their own properties and can accept inputs and produce outputs, making them ideal for headers, navigation bars, or repeated UI patterns." },
+
+  // Power Automate
+  { cat: "Power Automate", q: "What is the difference between a cloud flow and a desktop flow in Power Automate?", a: "Cloud flows run in the cloud and are triggered by events or schedules — they connect cloud services via connectors. Desktop flows run on a local machine using Robotic Process Automation (RPA) to automate legacy apps, desktop software, or websites that have no API." },
+  { cat: "Power Automate", q: "What are the three main types of cloud flow triggers?", a: "Automated flows trigger when an event occurs (e.g. a new email arrives). Instant flows are triggered manually by a user. Scheduled flows run at a defined time or interval." },
+  { cat: "Power Automate", q: "What is a condition action and how does branching work in Power Automate?", a: "A Condition action checks whether an expression evaluates to true or false, then runs different actions in the 'If yes' or 'If no' branch accordingly. For more complex multi-branch logic, a Switch action is used instead." },
+  { cat: "Power Automate", q: "What is the purpose of the 'Apply to each' action?", a: "'Apply to each' loops through every item in an array and runs the actions inside it once per item. It is the primary way to process lists of data — for example, iterating over all attachments in an email or all rows returned from a SharePoint query." },
+  { cat: "Power Automate", q: "How do you pass data between a Power Apps canvas app and a Power Automate flow?", a: "The flow must use the 'PowerApps (V2)' trigger, which lets you define named input parameters. The app calls the flow using the Run() function and passes values as arguments. The flow can return output back to the app if a 'Respond to a PowerApp or flow' action is included." },
+  { cat: "Power Automate", q: "What is the difference between 'Run after' settings in Power Automate?", a: "'Run after' controls when an action executes based on the status of the previous action. Options are: is successful, has failed, is skipped, or has timed out. You can combine these to build error-handling branches that only run if something goes wrong." },
+
+  // Power BI
+  { cat: "Power BI", q: "What is the difference between Import mode and DirectQuery in Power BI?", a: "Import mode loads a snapshot of data into Power BI's in-memory engine — fast, but data is only as fresh as the last refresh. DirectQuery sends queries live to the source every time a visual is interacted with — always current, but slower and dependent on source performance." },
+  { cat: "Power BI", q: "What is a measure in Power BI and how does it differ from a calculated column?", a: "A measure is a DAX calculation evaluated dynamically at query time based on the current filter context — it has no row-by-row existence in the table. A calculated column is computed row by row at refresh time and stored in the model, using row context rather than filter context." },
+  { cat: "Power BI", q: "What does CALCULATE() do in DAX?", a: "CALCULATE() evaluates an expression in a modified filter context. It is the most important DAX function — it allows you to override, add, or remove filters that are applied to a measure, enabling calculations like year-to-date, same period last year, or filtering by a specific category." },
+  { cat: "Power BI", q: "What is a star schema and why is it recommended in Power BI?", a: "A star schema has a central fact table (containing measures and foreign keys) surrounded by dimension tables (containing descriptive attributes). It is recommended in Power BI because it minimises the number of relationships, reduces model complexity, and allows the DAX engine to perform more efficiently." },
+  { cat: "Power BI", q: "What is Row Level Security (RLS) in Power BI?", a: "RLS restricts data access at the row level based on the identity of the user viewing the report. You define roles with DAX filter expressions that determine which rows each role can see, then assign users or groups to those roles in the Power BI Service." },
+
+  // Power Pages
+  { cat: "Power Pages", q: "What is Power Pages and what is it primarily used for?", a: "Power Pages (formerly Power Apps Portals) is a low-code platform for building secure, data-driven external-facing websites. It is primarily used to give people outside an organisation — customers, partners, or the public — access to Dataverse data through web forms, lists, and self-service experiences." },
+  { cat: "Power Pages", q: "What are web roles in Power Pages?", a: "Web roles control what authenticated users can see and do on a Power Pages site. They are assigned to contacts in Dataverse and determine access to pages, table permissions, and web files. Anonymous users get the Anonymous Users web role by default." },
+  { cat: "Power Pages", q: "What are table permissions in Power Pages and why are they important?", a: "Table permissions define what CRUD operations (Create, Read, Update, Delete) a web role can perform on Dataverse tables. Without explicitly granting table permissions, authenticated users cannot access any data — they act as a security layer between the website and Dataverse." },
+
+  // Dataverse
+  { cat: "Dataverse", q: "What is Microsoft Dataverse and how does it relate to the Power Platform?", a: "Dataverse is a cloud-based data platform that stores and manages data used by Power Platform apps. It provides a structured, secure, and compliant database with built-in tables, relationships, business rules, and security. It is the native data source for Model-driven apps, Power Pages, and Dynamics 365." },
+  { cat: "Dataverse", q: "What is the difference between a standard table, managed table, and custom table in Dataverse?", a: "Standard tables (like Account, Contact) are built-in tables provided by Microsoft. Managed tables are installed via solutions and are read-only — they cannot be customised directly. Custom tables are created by makers for their specific business needs and are fully editable." },
+  { cat: "Dataverse", q: "What is a solution in the context of Power Platform?", a: "A solution is a container for Power Platform components (apps, flows, tables, connectors, etc.) that packages them together for transport between environments. Solutions enable Application Lifecycle Management (ALM) — moving work from development through test to production in a controlled, repeatable way." },
+  { cat: "Dataverse", q: "What is the difference between a managed solution and an unmanaged solution?", a: "An unmanaged solution is used in development — components can be freely edited and deleted. A managed solution is a locked, deployable package installed in downstream environments (test, production). Managed components cannot be directly edited, which protects the integrity of deployed solutions." },
+
+  // General / Governance
+  { cat: "Governance", q: "What is the Power Platform Center of Excellence (CoE) Starter Kit?", a: "The CoE Starter Kit is a collection of templates, apps, flows, and dashboards provided by Microsoft to help organisations govern and manage their Power Platform environments. It provides visibility into who is building what, helps identify unused resources, and supports adoption and compliance initiatives." },
+  { cat: "Governance", q: "What is a Data Loss Prevention (DLP) policy in Power Platform?", a: "A DLP policy restricts which connectors can be used together in a flow or app. Connectors are classified as Business, Non-business, or Blocked, and connectors from different groups cannot be combined in the same app or flow. DLP policies are set by admins at the tenant or environment level to prevent data leakage." },
+  { cat: "Governance", q: "What is the difference between a production environment and a sandbox environment in Power Platform?", a: "A production environment is for live, business-critical solutions used by end users. A sandbox environment is a copy that allows testing, development, and experimentation without affecting production. Sandboxes can be reset and can be converted to production environments if needed." },
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let sessionCount = 0;
+let revealed = false;
+let currentQuestion = null;
+let sessionHistory = []; // indices shown this session
+let recentlyShown = []; // avoid repeats
+const MAX_RECENT = Math.min(5, Math.floor(QUESTIONS.length / 2));
+
+// Load today's total from localStorage
+const todayKey = 'ppquiz_' + new Date().toDateString();
+let todayTotal = parseInt(localStorage.getItem(todayKey) || '0');
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('q-count').textContent = QUESTIONS.length;
+document.getElementById('session-total').textContent = todayTotal;
+
+// ─── FUNCTIONS ────────────────────────────────────────────────────────────────
+function startQuiz() {
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('quiz-screen').classList.remove('hidden');
+  document.getElementById('quiz-screen').style.display = 'flex';
+  loadQuestion();
+}
+
+function getRandomQuestion() {
+  const available = QUESTIONS.map((_, i) => i).filter(i => !recentlyShown.includes(i));
+  const pool = available.length > 0 ? available : QUESTIONS.map((_, i) => i);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function loadQuestion() {
+  revealed = false;
+  const idx = getRandomQuestion();
+  currentQuestion = QUESTIONS[idx];
+  recentlyShown.push(idx);
+  if (recentlyShown.length > MAX_RECENT) recentlyShown.shift();
+
+  document.getElementById('q-category').textContent = currentQuestion.cat;
+  document.getElementById('question-text').textContent = currentQuestion.q;
+  document.getElementById('answer-text').textContent = currentQuestion.a;
+  document.getElementById('answer-text').classList.add('answer-blur');
+  document.getElementById('answer-text').classList.remove('revealed');
+  document.getElementById('answer-block').classList.remove('revealed');
+  document.getElementById('reveal-hint').classList.remove('hidden');
+  updateProgress();
+}
+
+function revealAnswer() {
+  if (revealed) return;
+  revealed = true;
+  document.getElementById('answer-text').classList.remove('answer-blur');
+  document.getElementById('answer-text').classList.add('revealed');
+  document.getElementById('answer-block').classList.add('revealed');
+  document.getElementById('reveal-hint').classList.add('hidden');
+
+  sessionCount++;
+  todayTotal++;
+  localStorage.setItem(todayKey, todayTotal);
+  document.getElementById('session-counter').textContent = sessionCount;
+}
+
+function nextQuestion() {
+  if (!revealed) {
+    revealAnswer();
+    return;
+  }
+  loadQuestion();
+}
+
+function endSession() {
+  document.getElementById('quiz-screen').classList.add('hidden');
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('start-screen').classList.remove('hidden');
+  document.getElementById('session-total').textContent = todayTotal;
+
+  if (sessionCount > 0) showToast('Session done — ' + sessionCount + ' question' + (sessionCount !== 1 ? 's' : '') + ' answered');
+  sessionCount = 0;
+  sessionHistory = [];
+  recentlyShown = [];
+  renderDots(0);
+}
+
+function updateProgress() {
+  sessionHistory.push(1);
+  renderDots(sessionHistory.length);
+}
+
+function renderDots(current) {
+  const container = document.getElementById('progress-dots');
+  const total = Math.max(current + 4, 8);
+  container.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    if (i < current - 1) dot.classList.add('seen');
+    else if (i === current - 1) dot.classList.add('current');
+    container.appendChild(dot);
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// Update Next button label based on reveal state
+document.getElementById('answer-block').addEventListener('click', () => {
+  document.getElementById('next-btn').textContent = 'Next question';
+});
+</script>
+
+</body>
+</html>
